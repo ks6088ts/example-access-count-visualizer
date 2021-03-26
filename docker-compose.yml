@@ -1,0 +1,49 @@
+version: '3.8'
+services:
+  nginx:
+    image: nginx:1.19.7-alpine
+    container_name: nginx
+    ports:
+    - ${NGINX_PORT}:80
+    volumes:
+    - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+    - ./outputs/nginx:/var/log/nginx
+    networks:
+    - shared-network
+  fluentd:
+    build:
+      context: .
+      dockerfile: ./docker/fluentd/Dockerfile
+    container_name: fluentd
+    ports:
+    - ${FLUENTD_PORT}:24224
+    - ${FLUENTD_PORT}:24224/udp
+    volumes:
+    - ./docker/fluentd/fluent.conf:/fluentd/etc/fluent.conf
+    - ./outputs/nginx:/var/log/nginx
+    networks:
+    - shared-network
+  elasticsearch:
+    image: elasticsearch:7.10.1
+    container_name: elasticsearch
+    ports:
+    - ${ELASTICSEARCH_PORT}:9200
+    environment:
+    - discovery.type=single-node
+    networks:
+    - shared-network
+  grafana:
+    image: grafana/grafana:7.4.3
+    container_name: grafana
+    ports:
+    - ${GRAFANA_PORT}:3000
+    environment:
+    - GF_SECURITY_ADMIN_USER=${GRAFANA_SECURITY_ADMIN_USER}
+    - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_SECURITY_ADMIN_PASSWORD}
+    volumes:
+    - ./docker/grafana/datasources:/etc/grafana/provisioning/datasources
+    networks:
+    - shared-network
+networks:
+  shared-network:
+    external: true
